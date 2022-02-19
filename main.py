@@ -1,15 +1,14 @@
 import glob
 import os
 import re
+from datetime import date
+
 from lxml import etree
 
 # Конвертация словаря Warodai в формат xml, согласно формату
 # https://warodai.ru/about/readme
 # todo 3.4.3. Обозначение омограмм римскими цифрами
 # todo 3.7. Гнездование
-# todo 3.8. Общее уточнение
-# todo そう【添う】(соу)〔002-52-52〕
-#  (に)
 warodai_dir = "/Users/dmitry/Documents/GitHub/warodai-source/"
 
 
@@ -22,9 +21,10 @@ def convert_warodai_to_xml():
         parse_article(article_name, article, root)
         count += 1
 
-    xml_tree = etree.ElementTree(root)
-    with open('./warodai.xml', 'wb') as f:
-        f.write(etree.tostring(xml_tree, encoding="UTF-8"))
+    root = etree.ElementTree(root)
+    today = date.today().isoformat()
+    with open(f'./warodai{today}.xml', 'wb') as f:
+        f.write(etree.tostring(root, encoding="UTF-8", pretty_print=True))
     print(f'converted {count} articles')
 
 
@@ -52,10 +52,10 @@ def parse_title(title, article_element):
     corpus = title_match.group(6)
     number = title_match.group(7)
 
-    article_element.set("kana", kana)
+    article_element.set("kana", remove_homogram(kana))
     if hyoukies is not None:
         for hyouki in hyoukies.split("･"):
-            etree.SubElement(article_element, "hyouki").text = hyouki
+            etree.SubElement(article_element, "hyouki").text = remove_homogram(hyouki)
     article_element.set("kiriji", kiriji)
     if corpus is not None:
         article_element.set("corpus", corpus)
@@ -65,21 +65,62 @@ def parse_title(title, article_element):
 def parse_rubrics(rubrics, article_element):
     rubric_element = None
     group = None
+    litter = None
+    litter_kanji = ""
     for line in rubrics:
         if line == "":
             continue
         rubric_match = re.search(r'^(\d)[).]\s*(.*)', line)
-        derivative_rubric_match = re.search(r'^: ～', line)
         if rubric_match is not None:
-            meaning = rubric_match.group(2)
+            meaning = clear_line(rubric_match.group(2))
             if meaning == '':
                 group = rubric_match.group(1)
                 continue
             rubric_element = etree.SubElement(article_element, "rubric")
             if group is not None:
                 rubric_element.set("group", group)
-            rubric_element.text = clear_line(meaning)
+            if litter is not None or litter_kanji != '':
+                litter_match = None
+                if litter is not None:
+                    litter_match = re.match(r'(<i>)([ёЁа-яА-Я ]*\.):?(</i>)', litter)
+                meaning_with_litter_m = re.search(
+                    r'((<i>)(?P<corpus>[ёЁа-яА-Я. ]*)(</i>))?((?P<deri>: ～[一-龯ぁ-んァ-ン]*)|(?P<kanji>[一-龯ぁ-んァ-ン]*))?(?P<comma>: )?(?P<meaning>.*)$',
+                    meaning)
+                if litter_match is not None and meaning_with_litter_m is not None:
+                    # print(litter_match.groups())
+                    # print(meaning_with_litter_m.groups())
+                    meaning = " ".join(filter(None, [meaning_with_litter_m.expand(r"\g<deri>"),
+                                                     litter_kanji,
+                                                     litter_match.expand(r"\g<1>\g<2>"),
+                                                     meaning_with_litter_m.expand(r"\g<corpus>\g<comma>"),
+                                                     litter_match.expand(r"\g<3>"),
+                                                     meaning_with_litter_m.expand(r"\g<kanji>"),
+                                                     meaning_with_litter_m.group("meaning")]))
+                elif litter is not None:
+                    meaning = litter + " " + meaning
+                elif len(litter_kanji) > 0 and meaning_with_litter_m is not None:
+                    meaning = meaning_with_litter_m.expand(r"\g<deri> ") + litter_kanji \
+                              + meaning_with_litter_m.expand(r"\g<1> \g<meaning>")
+                    meaning = meaning.strip()
+                else:
+                    raise RuntimeError("litter process failed")
+            rubric_element.text = meaning
             continue
+
+        if rubric_element is None:
+            litter_kanji_m = re.fullmatch(r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-んァ-ンА-Яа-яЁё]*)\)?$', line)
+            if litter_kanji_m is not None:
+                litter_kanji = litter_kanji_m.expand(r"(\g<1>)")
+                continue
+            # search из-за (<i>нем.</i> Aphtha[e]) <i>мед.</i>
+            litter_match = re.search(r'(<i>)([ ёЁа-яА-Яa-zA-Z]*\.:?)(</i>)$', line)
+            litter_derivative_match = re.match(r'^: ～[一-龯ぁ-んァ-ン]*', line) or re.fullmatch(r'\(\S*\)', line)
+            if litter_match is not None:
+                litter = line
+                continue
+            if litter_derivative_match is not None:
+                litter = line
+                continue
 
         derivative_match = re.search(r'^～', line)
         idiom_match = re.search(r'^◇', line)
@@ -87,10 +128,10 @@ def parse_rubrics(rubrics, article_element):
         text = clear_line(line)
         if rubric_element is None:
             rubric_element = etree.SubElement(article_element, "rubric")
-            if derivative_rubric_match is not None:
-                rubric_element.set("type", "derivative")
-            rubric_element.text = text
-            continue
+            if derivative_match is None:
+                rubric_element.text = text
+                continue
+
         if derivative_match is not None:
             derivative_element = etree.SubElement(rubric_element, "derivative")
             derivative_element.text = text
@@ -100,29 +141,47 @@ def parse_rubrics(rubrics, article_element):
         phrase_element.text = text
         if idiom_match is not None:
             phrase_element.set("type", "idiom")
-            rubric_element.text = clear_line(text)
+            rubric_element.text = text
             continue
 
 
 def clear_line(line):
+    if len(line) == 0:
+        return line
     if line[-1] in set("."";"):
-        return line[:-1]
-    return line
+        return line[:-1].strip()
+    return line.strip()
+
+
+def remove_homogram(text):
+    homogram_m = re.search(r"([一-龯ぁ-んァ-ンゝ]+)(I+)(.*)", text)
+    if homogram_m is None:
+        return text
+    return homogram_m.expand(r"\g<1>\g<3>")
 
 
 def test_parse():
     test_root = etree.Element("warodai")
-    filename = warodai_dir + "006/49/006-49-94.txt"
-    # filename = warodai_dir + "000/12/000-12-70.txt"
-    filename = warodai_dir + "008/28/008-28-35.txt"
-    filename = warodai_dir + "007/61/007-61-37.txt"
-    filename = warodai_dir + "002/52/002-52-52.txt"
-    article_name = os.path.basename(filename).split(".")[0]
-    article = read_article(filename)
-    parse_article(article_name, article, test_root)
-    xml_tree = etree.ElementTree(test_root)
-    with open('./warodai_test.xml', 'wb') as f:
-        f.write(etree.tostring(xml_tree, encoding="UTF-8"))
+    files = [
+        # "004-23-67",
+        # "006-79-94",
+        # "005-75-60",
+        # "008-56-59",
+        # "007-58-00",
+        # "002-52-52",
+        # "005-78-01",
+        # "004-94-80",
+        # "006-07-86",
+        "007-61-80"
+    ]
+    for filename in files:
+        numbers = filename.split("-")
+        file = f"{warodai_dir}/{numbers[0]}/{numbers[1]}/{filename}.txt"
+        article_name = os.path.basename(file).split(".")[0]
+        article = read_article(file)
+        parse_article(article_name, article, test_root)
+    root = etree.ElementTree(test_root)
+    root.write('./warodai_test.xml', encoding="utf-8", pretty_print=True, method="xml")
 
 
 if __name__ == '__main__':
