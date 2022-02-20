@@ -64,6 +64,13 @@ class RubricsTestCase(unittest.TestCase):
             rubrics = article.findall('rubric')
             self.assertEqual("<i>см.</i> <a href=\"#008-98-82\">きめこみにんぎょう</a>", rubrics[0].attrib["translation"])
 
+    # あいだ【間】(айда)〔006-49-94〕
+    def test_rubric3(self):
+        root = test_parse("006-49-94").getroot()
+        self.assertEqual("промежуток, расстояние; интервал", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("1", root[0].findall('rubric')[0].attrib["group"])
+        self.assertEqual("<i>связ.</i> период времени", root[0].findall('rubric')[1].attrib["translation"])
+
 
 class HomogramsTestCase(unittest.TestCase):
 
@@ -101,91 +108,101 @@ class LittersTestCase(unittest.TestCase):
     # пометы
     def test_litter1(self):
         root = test_parse("004-23-67").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("<i>ист.</i> императорский двор", rubrics[0].attrib["translation"])
-            self.assertEqual("<i>ист.</i> сёгун", rubrics[1].attrib["translation"])
+        self.assertEqual("<i>ист.</i>", root[0].findall('clarification')[0].text)
+        self.assertEqual("императорский двор", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("сёгун", root[0].findall('rubric')[1].attrib["translation"])
 
-    # пометы
-    def test_litter2(self):
-        root = test_parse("006-79-94").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("<i>уст.</i> носильщик паланкина", rubrics[0].attrib["translation"])
-            self.assertEqual("<i>уст. перен. прост.</i> ловкач, продувной парень",
-                             rubrics[1].attrib["translation"])
-
+    # ふでまめ【筆まめ】(фудэмамэ)〔008-56-59〕
+    # <i>уст.</i> 筆忠実
+    # 1): ～な хорошо владеющий пером;
+    # ～である хорошо владеть пером; писать с лёгкостью;
+    # 2): ～な любящий писать <i>(письма)</i>.
     def test_litter3(self):
         root = test_parse("008-56-59").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual(": ～な (<i>уст.</i> 筆忠実) хорошо владеющий пером", rubrics[0].attrib["translation"])
-            self.assertEqual(": ～な (<i>уст.</i> 筆忠実) любящий писать <i>(письма)</i>",
-                             rubrics[1].attrib["translation"])
+        self.assertEqual("<i>уст.</i> 筆忠実", root[0].findall('clarification')[0].text)
+        self.assertEqual(": ～な хорошо владеющий пером", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("～である хорошо владеть пером; писать с лёгкостью",
+                         root[0].findall('rubric')[0].findall('derivative')[0].text)
+        self.assertEqual(": ～な любящий писать <i>(письма)</i>", root[0].findall('rubric')[1].attrib["translation"])
 
+    # ぐんけい【軍警】(гункэй)〔005-57-66〕
+    # (<i>сокр.</i> 軍事警察)
+    # 1) военная полиция; жандармерия;
+    # 2) военный полицейский; жандарм.
     def test_litter4(self):
         root = test_parse("005-57-66").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("(<i>сокр.</i> 軍事警察) военная полиция; жандармерия", rubrics[0].attrib["translation"])
-            self.assertEqual("(<i>сокр.</i> 軍事警察) военный полицейский; жандарм", rubrics[1].attrib["translation"])
+        self.assertEqual("(<i>сокр.</i> 軍事警察)", root[0].findall('clarification')[0].text)
+        self.assertEqual("военная полиция; жандармерия", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("военный полицейский; жандарм", root[0].findall('rubric')[1].attrib["translation"])
 
-    def test_litter5(self):
-        root = test_parse("001-95-90").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("(<i>русск.</i> народники) народники", rubrics[0].attrib["translation"])
-            self.assertEqual("(<i>русск.</i> народники) народничество", rubrics[1].attrib["translation"])
-
-    def test_litter6(self):
-        root = test_parse("005-75-60").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("<i>ономат.:</i> かんかん鳴る звенеть; лязгать", rubrics[0].attrib["translation"])
-            self.assertEqual("<i>ономат.:</i> かんかん日が照っている солнце светит ярко", rubrics[1].attrib["translation"])
-            self.assertEqual("<i>ономат.:</i> かんかんに怒る вспыхнуть от гнева, загореться гневом",
-                             rubrics[2].attrib["translation"])
-
+    # けいえん【敬遠】(кэйэн)〔007-58-00〕
+    #: ～する
+    # 1) с почётом удалять (отстранять) <i>кого-л.</i>;
+    # 2) держаться почтительно, но на расстоянии; относиться с уважением, но холодно.
     def test_litter7(self):
         root = test_parse("007-58-00").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual(": ～する с почётом удалять (отстранять) <i>кого-л.</i>",
-                             rubrics[0].attrib["translation"])
-            self.assertEqual(": ～する держаться почтительно, но на расстоянии; относиться с уважением, но холодно",
-                             rubrics[1].attrib["translation"])
+        self.assertEqual(": ～する", root[0].findall('clarification')[0].text)
+        self.assertEqual("с почётом удалять (отстранять) <i>кого-л.</i>",
+                         root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("держаться почтительно, но на расстоянии; относиться с уважением, но холодно",
+                         root[0].findall('rubric')[1].attrib["translation"])
 
+    # そう【添う】(соу)〔002-52-52〕
+    # (に)
+    # 1) сопровождать <i>кого-л.</i>; следовать <i>за чем-л.</i>;
+    # 影の形に添うように как тень <i>(идти за кем-л.)</i>;
+    # 2) вступать в брак, жениться, выходить замуж;
+    # …と添われるようにと祈る мечтать жениться на <i>ком-л.</i> (выйти замуж за <i>кого-л.</i>);
+    # 添われぬ縁とあきらめてくれ оставь надежду жениться на мне.
     def test_litter8(self):
         root = test_parse("002-52-52").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("(に) сопровождать <i>кого-л.</i>; следовать <i>за чем-л.</i>",
-                             rubrics[0].attrib["translation"])
-            self.assertEqual("(に) вступать в брак, жениться, выходить замуж", rubrics[1].attrib["translation"])
+        self.assertEqual("(に)", root[0].findall('clarification')[0].text)
+        self.assertEqual("сопровождать <i>кого-л.</i>; следовать <i>за чем-л.</i>",
+                         root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("вступать в брак, жениться, выходить замуж",
+                         root[0].findall('rubric')[1].attrib["translation"])
 
     def test_litter9(self):
         root = test_parse("005-78-01").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("(<i>нем.</i> Aphtha[e]) <i>мед.</i> молочница", rubrics[0].attrib["translation"])
-            self.assertEqual("(<i>нем.</i> Aphtha[e]) <i>мед.</i> афты", rubrics[1].attrib["translation"])
+        self.assertEqual("(<i>нем.</i> Aphtha[e]) <i>мед.</i>", root[0].findall('clarification')[0].text)
+        self.assertEqual("молочница", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("афты", root[0].findall('rubric')[1].attrib["translation"])
 
+    # ふじゅん【不純】(фудзюн)〔004-94-80〕
+    # : ～な <i>прям. и перен.</i>
+    # 1) нечистый, грязный;
+    # 2) смешанный, разбавленный.
     def test_litter10(self):
         root = test_parse("004-94-80").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual(": ～な <i>прям. и перен.</i> нечистый, грязный", rubrics[0].attrib["translation"])
-            self.assertEqual(": ～な <i>прям. и перен.</i> смешанный, разбавленный",
-                             rubrics[1].attrib["translation"])
+        self.assertEqual(": ～な <i>прям. и перен.</i>", root[0].findall('clarification')[0].text)
+        self.assertEqual("нечистый, грязный", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("смешанный, разбавленный", root[0].findall('rubric')[1].attrib["translation"])
 
+    # …かさね【…重ね】(…касанэ)〔006-07-86〕
+    # <i>уст.</i> 襲ね
+    # <i>счётный суф.:</i>
+    # 1) <i>для костюмов и различных комплектов</i>;
+    # <...>
+    # 2) <i>для слоёв; для полок и т. п.</i>;
     def test_litter11(self):
         root = test_parse("006-07-86").getroot()
-        for article in root:
-            rubrics = article.findall('rubric')
-            self.assertEqual("(<i>уст.</i> 襲ね) <i>счётный суф. для костюмов и различных комплектов</i>",
-                             rubrics[0].attrib["translation"])
-            self.assertEqual("(<i>уст.</i> 襲ね) <i>счётный суф. для слоёв; для полок и т. п.</i>",
-                             rubrics[1].attrib["translation"])
+        self.assertEqual("<i>уст.</i> 襲ね", root[0].findall('clarification')[0].text)
+        self.assertEqual("<i>счётный суф.:</i>", root[0].findall('clarification')[1].text)
+        self.assertEqual("<i>для костюмов и различных комплектов</i>",
+                         root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("<i>для слоёв; для полок и т. п.</i>", root[0].findall('rubric')[1].attrib["translation"])
+
+    # けんぱい【献杯･献盃】(кэмпай)〔008-33-61〕
+    # 1) (<i>тж.</i> 勧盃)
+    #: ～する угощать вином <i>кого-л.</i>, предлагать бокал вина <i>кому-л.</i>;
+    # <...>
+    def test_litter12(self):
+        root = test_parse("008-33-61").getroot()
+        self.assertEqual("(<i>тж.</i> 勧盃)", root[0].findall('rubric')[0].attrib["clarification"])
+        self.assertEqual(": ～する угощать вином <i>кого-л.</i>, предлагать бокал вина <i>кому-л.</i>",
+                         root[0].findall('rubric')[0].findall('derivative')[0].text)
+        self.assertEqual("<i>см.</i> <a href=\"#008-19-10\">かんぱい【乾杯】</a>",
+                         root[0].findall('rubric')[1].attrib["references"])
 
 
 class NestingTestsCase(unittest.TestCase):

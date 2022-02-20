@@ -6,7 +6,7 @@ from lxml import etree
 
 # Конвертация словаря Warodai в формат xml, согласно формату
 # https://warodai.ru/about/readme
-# todo 3.12. Общие отсылки (ср.)
+# todo description https://docs.oracle.com/cd/E11035_01/wls100/xml/intro.html#:~:text=Extensible%20Markup%20Language%20(XML)%20is,delivering%20content%20on%20the%20Internet.&text=Like%20HTML%2C%20XML%20uses%20tags%20to%20describe%20content
 # подсказки по классам японских символов regex https://gist.github.com/terrancesnyder/1345094
 warodai_dir = "/Users/dmitry/Documents/GitHub/warodai-source/"
 
@@ -100,8 +100,6 @@ def parse_title(kana, hyoukies, kiriji, corpus, number, article_element):
 def parse_rubrics(rubrics, article_element):
     rubric_element = None
     group = None
-    litter = None
-    litter_kanji = ""
     for line in rubrics:
         if line == "":
             continue
@@ -114,48 +112,47 @@ def parse_rubrics(rubrics, article_element):
             rubric_element = etree.SubElement(article_element, "rubric")
             if group is not None:
                 rubric_element.set("group", group)
-            if litter is not None or litter_kanji != '':
-                litter_match = None
-                if litter is not None:
-                    litter_match = re.match(r'(<i>)(?P<litter>[ёЁа-яА-Я ]*\.):?(</i>)', litter)
-                meaning_with_litter_m = re.search(
-                    r'((<i>)(?P<corpus>[ёЁа-яА-Я;. ]*)(</i>))?((?P<deri>: ～[一-龯ぁ-んァ-ン]*)|(?P<kanji>[一-龯ぁ-んァ-ン]*))?(?P<comma>: )?(?P<meaning>.*)$',
-                    meaning)
-                if litter_match is not None and meaning_with_litter_m is not None:
-                    # print(litter_kanji)
-                    # print(meaning_with_litter_m.groups())
-                    meaning = construct_meaning(meaning_with_litter_m, litter_match, litter_kanji)
-                elif litter is not None:
-                    meaning = litter + " " + meaning
-                elif len(litter_kanji) > 0 and meaning_with_litter_m is not None:
-                    meaning = meaning_with_litter_m.expand(r"\g<deri> ") + litter_kanji + " " \
-                              + meaning_with_litter_m.expand(r"\g<1> \g<meaning>").strip()
-                    meaning = meaning.strip()
-                else:
-                    raise RuntimeError("litter process failed")
 
-            rubric_element.set("translation", meaning)
+            omit_match = re.match(r'^\(<i>тж.</i> [一-龯ぁ-んァ-ン]*\)', meaning)
+            references_match = re.match(r'^<i>см\.</i>', meaning)
+
+            if omit_match is not None:
+                rubric_element.set("clarification", meaning)
+            elif references_match is not None:
+                rubric_element.set("references", meaning)
+            else:
+                rubric_element.set("translation", meaning)
             continue
 
         if rubric_element is None:
             litter_kanji_m = re.fullmatch(r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-んァ-ンА-Яа-яЁё]*)\)?$', line)
-            if litter_kanji_m is not None:
-                litter_kanji = litter_kanji_m.expand(r"(\g<1>)")
-                continue
             # search из-за (<i>нем.</i> Aphtha[e]) <i>мед.</i>
             litter_match = re.search(r'(<i>)([ ёЁа-яА-Яa-zA-Z]*\.:?)(</i>)$', line)
             litter_derivative_match = re.match(r'^: ～[一-龯ぁ-んァ-ン]*', line) or re.fullmatch(r'\(\S*\)', line)
+            if litter_kanji_m is not None:
+                clarification_element = etree.SubElement(article_element, "clarification")
+                clarification_element.text = line
+                continue
             if litter_match is not None:
-                litter = line
+                clarification_element = etree.SubElement(article_element, "clarification")
+                clarification_element.text = line
                 continue
             if litter_derivative_match is not None:
-                litter = line
+                clarification_element = etree.SubElement(article_element, "clarification")
+                clarification_element.text = line
                 continue
 
-        derivative_match = re.search(r'^～', line)
-        idiom_match = re.search(r'^◇', line)
+        derivative_match = re.match(r'^(: )?～', line)
+        idiom_match = re.match(r'^◇', line)
+        references_match = re.match(r'^<i>ср\.</i>', line)
 
         text = clear_line(line)
+
+        if references_match is not None:
+            references_element = etree.SubElement(article_element, "references")
+            references_element.text = text
+            continue
+
         if rubric_element is None:
             rubric_element = etree.SubElement(article_element, "rubric")
             if derivative_match is None:
@@ -174,24 +171,6 @@ def parse_rubrics(rubrics, article_element):
 
         phrase_element = etree.SubElement(rubric_element, "phrase")
         phrase_element.text = text
-
-
-def construct_meaning(meaning_with_litter_m, litter_m, litter_kanji):
-    meaning_litter = meaning_with_litter_m.expand(r"\g<corpus>")
-    litter = litter_m.expand(r"\g<1>")
-    litter += litter_m.expand(r"\g<litter>")
-    if len(meaning_litter) > 0:
-        litter += " " + meaning_litter
-    litter += meaning_with_litter_m.expand(r"\g<comma>").strip()
-    litter += litter_m.expand(r"\g<3>")
-    return " ".join(filter(lambda x: len(x) > 0,
-                           [meaning_with_litter_m.expand(r"\g<deri>"),
-                            litter_kanji,
-                            litter,
-                            meaning_with_litter_m.expand(r"\g<kanji>"),
-                            meaning_with_litter_m.expand(r"\g<meaning>").strip()
-                            ]
-                           ))
 
 
 def clear_line(line):
@@ -225,7 +204,10 @@ def test_parse():
         "009-26-70",
         "007-66-47",
         "007-65-61",
-        "009-12-37"
+        "009-12-37",
+        "007-65-61",
+        "005-48-14",
+        "008-33-61"
     ]
     for filename in files:
         numbers = filename.split("-")
@@ -238,5 +220,5 @@ def test_parse():
 
 
 if __name__ == '__main__':
-    convert_warodai_to_xml()
-    # test_parse()
+    # convert_warodai_to_xml()
+    test_parse()
