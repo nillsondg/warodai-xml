@@ -11,19 +11,3 @@
     Перевод для рубрики 2
     Производные для рубрики 2
 Общие отсылки
-
-
-{
-  "title": "",
-  "clarification": "",
-  "rubrics": [
-    {
-      "translation": "",
-      "derivatives": "",
-      "free_phrases": "",
-      "phraseological_phrases": "",
-      "idioms": "",
-      "references": ""
-    }
-  ]
-}
