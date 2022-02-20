@@ -10,15 +10,16 @@ from lxml import etree
 # подсказки по классам японских символов regex https://gist.github.com/terrancesnyder/1345094
 warodai_dir = "/Users/dmitry/Documents/GitHub/warodai-source/"
 
+export_count = 0
+
 
 def convert_warodai_to_xml():
     root = etree.Element("warodai")
     count = 0
-    export_count = 0
     for filename in glob.iglob(warodai_dir + '**/*.txt', recursive=True):
         article = read_article(filename)
         article_name = os.path.basename(filename).split(".")[0]
-        parse_article(article_name, article, root, export_count)
+        parse_article(article_name, article, root)
         count += 1
 
     root = etree.ElementTree(root)
@@ -34,7 +35,8 @@ def read_article(filename):
         return f.read()
 
 
-def parse_article(name, article, root, export_count):
+def parse_article(name, article, root):
+    global export_count
     print("parse_article " + name)
     split = article.split("\n")
     title = split[0]
@@ -225,17 +227,16 @@ def test_parse():
         "007-65-61",
         "009-12-37"
     ]
-    count = 0
     for filename in files:
         numbers = filename.split("-")
         file = f"{warodai_dir}/{numbers[0]}/{numbers[1]}/{filename}.txt"
         article_name = os.path.basename(file).split(".")[0]
         article = read_article(file)
-        parse_article(article_name, article, test_root, count)
+        parse_article(article_name, article, test_root)
     root = etree.ElementTree(test_root)
     root.write('./warodai_test.xml', encoding="utf-8", pretty_print=True, method="xml")
 
 
 if __name__ == '__main__':
-    # convert_warodai_to_xml()
-    test_parse()
+    convert_warodai_to_xml()
+    # test_parse()
