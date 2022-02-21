@@ -102,6 +102,12 @@ class HomogramsTestCase(unittest.TestCase):
             self.assertEqual("ICBM", hyoukies[0].text)
             self.assertEqual("I.C.B.M.", hyoukies[1].text)
 
+    # カラーII (кара:)〔009-16-81〕
+    def test_homogram5(self):
+        root = test_parse("009-16-81").getroot()
+        self.assertEqual("カラー", root[0].attrib["kana"])
+        self.assertEqual("(<i>англ.</i> colour)", root[0].findall('clarification')[0].text)
+
 
 class LittersTestCase(unittest.TestCase):
 

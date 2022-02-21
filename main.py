@@ -125,10 +125,10 @@ def parse_rubrics(rubrics, article_element):
             continue
 
         if rubric_element is None:
-            litter_kanji_m = re.fullmatch(r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-んァ-ンА-Яа-яЁё]*)\)?$', line)
+            litter_kanji_m = re.fullmatch(r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-ゔゞァ-・ヽヾ゛゜ーA-Za-zА-Яа-яЁё]*)\)?$', line)
             # search из-за (<i>нем.</i> Aphtha[e]) <i>мед.</i>
             litter_match = re.search(r'(<i>)([ ёЁа-яА-Яa-zA-Z]*\.:?)(</i>)$', line)
-            litter_derivative_match = re.match(r'^: ～[一-龯ぁ-んァ-ン]*', line) or re.fullmatch(r'\(\S*\)', line)
+            litter_derivative_match = re.match(r'^: ～[一-龯ぁ-ゔゞァ-・ヽヾ゛゜ー]*', line) or re.fullmatch(r'\(\S*\)', line)
             if litter_kanji_m is not None:
                 clarification_element = etree.SubElement(article_element, "clarification")
                 clarification_element.text = line
@@ -182,7 +182,7 @@ def clear_line(line):
 
 
 def remove_homogram(text):
-    homogram_m = re.search(r"([一-龯ぁ-んァ-ンゝ]+)(I+)(.*)", text)
+    homogram_m = re.search(r"([一-龯ぁ-ゔゞァ-・ヽヾ゛゜ーゝ]+)(I+)(.*)", text)
     if homogram_m is None:
         return text
     return homogram_m.expand(r"\g<1>\g<3>").strip()
@@ -207,7 +207,10 @@ def test_parse():
         "009-12-37",
         "007-65-61",
         "005-48-14",
-        "008-33-61"
+        "008-33-61",
+        "005-93-59",
+        "006-49-94",
+        "009-16-81"
     ]
     for filename in files:
         numbers = filename.split("-")
@@ -220,5 +223,5 @@ def test_parse():
 
 
 if __name__ == '__main__':
-    # convert_warodai_to_xml()
-    test_parse()
+    convert_warodai_to_xml()
+    # test_parse()
