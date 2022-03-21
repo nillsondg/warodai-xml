@@ -7,6 +7,7 @@ from lxml import etree
 # Конвертация словаря Warodai в формат xml, согласно формату
 # https://warodai.ru/about/readme
 # todo description https://docs.oracle.com/cd/E11035_01/wls100/xml/intro.html#:~:text=Extensible%20Markup%20Language%20(XML)%20is,delivering%20content%20on%20the%20Internet.&text=Like%20HTML%2C%20XML%20uses%20tags%20to%20describe%20content
+# todo условные сокращения и пометы
 # подсказки по классам японских символов regex https://gist.github.com/terrancesnyder/1345094
 warodai_dir = "/Users/dmitry/Documents/GitHub/warodai-source/"
 
@@ -104,6 +105,7 @@ def parse_rubrics(rubrics, article_element):
         if line == "":
             continue
         rubric_match = re.search(r'^(\d)[).]\s*(.*)', line)
+        rubric_not_exists = len(article_element.findall('rubric')) == 0
         if rubric_match is not None:
             meaning = clear_line(rubric_match.group(2))
             if meaning == '':
@@ -115,29 +117,22 @@ def parse_rubrics(rubrics, article_element):
 
             omit_match = re.match(r'^\(<i>тж.</i> [一-龯ぁ-んァ-ン]*\)', meaning)
             references_match = re.match(r'^<i>см\.</i>', meaning)
-
-            if omit_match is not None:
-                rubric_element.set("clarification", meaning)
-            elif references_match is not None:
-                rubric_element.set("references", meaning)
-            else:
-                rubric_element.set("translation", meaning)
+            # if omit_match is not None and rubric_not_exists:
+            #     rubric_element.set("clarification", meaning)
+            # elif references_match is not None:
+            #     rubric_element.set("references", meaning)
+            # else:
+            #     rubric_element.set("translation", meaning)
+            rubric_element.set("translation", meaning)
             continue
 
-        if rubric_element is None:
-            litter_kanji_m = re.fullmatch(r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-ゔゞァ-・ヽヾ゛゜ーA-Za-zА-Яа-яЁё]*)\)?$', line)
+        if rubric_element is None and rubric_not_exists:
+            litter_kanji_m = re.fullmatch(
+                r'^\(?((<i>)([ёЁа-яА-Яa-zA-Z]*\.)(</i>) [一-龯ぁ-ゔゞァ-・ヽヾ゛゜ーA-Za-zА-Яа-яЁё]*)\)?$', line)
             # search из-за (<i>нем.</i> Aphtha[e]) <i>мед.</i>
             litter_match = re.search(r'(<i>)([ ёЁа-яА-Яa-zA-Z]*\.:?)(</i>)$', line)
             litter_derivative_match = re.match(r'^: ～[一-龯ぁ-ゔゞァ-・ヽヾ゛゜ー]*', line) or re.fullmatch(r'\(\S*\)', line)
-            if litter_kanji_m is not None:
-                clarification_element = etree.SubElement(article_element, "clarification")
-                clarification_element.text = line
-                continue
-            if litter_match is not None:
-                clarification_element = etree.SubElement(article_element, "clarification")
-                clarification_element.text = line
-                continue
-            if litter_derivative_match is not None:
+            if litter_kanji_m is not None or litter_match is not None or litter_derivative_match is not None:
                 clarification_element = etree.SubElement(article_element, "clarification")
                 clarification_element.text = line
                 continue
@@ -148,7 +143,11 @@ def parse_rubrics(rubrics, article_element):
 
         text = clear_line(line)
 
-        if references_match is not None:
+        if references_match is not None and rubric_element is not None and rubric_match is None:
+            references_element = etree.SubElement(rubric_element, "references")
+            references_element.text = text
+            continue
+        elif references_match is not None:
             references_element = etree.SubElement(article_element, "references")
             references_element.text = text
             continue

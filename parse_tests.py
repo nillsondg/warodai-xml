@@ -108,6 +108,12 @@ class HomogramsTestCase(unittest.TestCase):
         self.assertEqual("カラー", root[0].attrib["kana"])
         self.assertEqual("(<i>англ.</i> colour)", root[0].findall('clarification')[0].text)
 
+    # イー・アール・ピー【ERPII】(и:-а:ру-пи:)〔000-49-21〕
+    def test_homogram5(self):
+        root = test_parse("000-49-21").getroot()
+        self.assertEqual("イー・アール・ピー", root[0].attrib["kana"])
+        self.assertEqual("ERP", root[0].findall('hyouki')[0].text)
+
 
 class LittersTestCase(unittest.TestCase):
 
@@ -204,11 +210,11 @@ class LittersTestCase(unittest.TestCase):
     # <...>
     def test_litter12(self):
         root = test_parse("008-33-61").getroot()
-        self.assertEqual("(<i>тж.</i> 勧盃)", root[0].findall('rubric')[0].attrib["clarification"])
+        self.assertEqual("(<i>тж.</i> 勧盃)", root[0].findall('rubric')[0].attrib["translation"])
         self.assertEqual(": ～する угощать вином <i>кого-л.</i>, предлагать бокал вина <i>кому-л.</i>",
                          root[0].findall('rubric')[0].findall('derivative')[0].text)
         self.assertEqual("<i>см.</i> <a href=\"#008-19-10\">かんぱい【乾杯】</a>",
-                         root[0].findall('rubric')[1].attrib["references"])
+                         root[0].findall('rubric')[1].attrib["translation"])
 
 
 class NestingTestsCase(unittest.TestCase):
@@ -275,6 +281,13 @@ class NestingTestsCase(unittest.TestCase):
         self.assertEqual("ぼろ・タク", root[1].attrib['kana'])
         self.assertEqual("боро-таку", root[0].attrib['kiriji'])
         self.assertEqual("боро-таку", root[1].attrib['kiriji'])
+
+    # общее уточнение
+    def test_clarification1(self):
+        root = test_parse("000-07-92").getroot()
+        self.assertEqual("время", root[0].findall('rubric')[0].attrib["translation"])
+        self.assertEqual("(<i>тж.</i> 隙) [свободное] время, досуг <i>(у кого-л.)</i>; <i>эк.</i> застой",
+                         root[0].findall('rubric')[1].attrib["translation"])
 
 
 if __name__ == '__main__':
